@@ -142,8 +142,7 @@ void pid_param_init(
     float kd);
 float pid_calc(PID_T *pid, float target, float measure);
 extern PID_T ANGLE_PID;
-extern PID_T point_X_pid ;
-extern PID_T point_Y_pid ;
+
 void pid_fast_init(PID_T *pid, float maxOutput, float kp, float ki, float kd);
 
 void pid_reset(PID_T *pid, float kp, float ki, float kd);

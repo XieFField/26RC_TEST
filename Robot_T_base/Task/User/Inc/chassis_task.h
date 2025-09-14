@@ -8,7 +8,6 @@
 
 #ifdef __cplusplus
 
-#define MACHINE_VISION  1 //值为1则启用视觉投篮，值为0则启用position投篮
 
 typedef enum ROBOT_CRTL_E      
 {

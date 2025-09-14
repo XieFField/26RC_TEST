@@ -47,14 +47,13 @@ extern float Laser_X_return;
 
 
 Ws2812b_SIGNAL_T send_signal = SIGNAL_WAIT;
-
+extern float receivex;
 extern float receivey;
 extern float receiveyaw;
 float dribble_speed_E = 57250;
 PID_T yaw_pid = {0};
 PID_T omega_pid = {0};
-PID_T point_X_pid = {0};
-PID_T point_Y_pid = {0};
+
 PID_T vision_pid = {0};
 PID_T vision_yaw_pid = {0};
 Omni_Chassis chassis(0.152/2.f, 0.442f/2.f, 3, 1.f); //底盘直径0.442m，轮子半径0.152m，底盘加速度0.5m/s^2
@@ -371,7 +370,7 @@ void Chassis_Task(void *pvParameters)
            else if(ctrl.chassis_ctrl == CHASSIS_LOW_MODE) //低速模式
            {
             #if TEST
-                ctrl.twist.linear.x = ctrl.twist.linear.x * (2.7 / 3.7)  * 0.2;
+                = ctrl.twist.linear.x * (2.7 / 3.7)  * 0.2;
                 ctrl.twist.linear.y = ctrl.twist.linear.y * (2.7 / 3.7) * 0.2;
             #else
                 ctrl.twist.linear.x = ctrl.twist.linear.x * 0.7;
@@ -388,9 +387,13 @@ void Chassis_Task(void *pvParameters)
            }
            else if(ctrl.chassis_ctrl == CHASSIS_LOCK_TARGET)
            {
-                 ctrl.twist.linear.x = ctrl.twist.linear.x * 0.9;
-                 ctrl.twist.linear.y = ctrl.twist.linear.y * 0.9;
-                 ctrl.twist.angular.z = ctrl.twist.angular.z  ;
+              plan_global_speed(1.18f, 7.13f, receivey, receivex, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
+               
+                speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y); 
+//               ctrl.twist.linear.x=-ctrl.twist.linear.x;
+                ctrl.twist.linear.y=-ctrl.twist.linear.y;
+               chassis.Control(ctrl.twist);
+               
            }
            else if(ctrl.chassis_ctrl == CHASSIS_DRIBBLE_LOW)
            {
@@ -405,104 +408,6 @@ void Chassis_Task(void *pvParameters)
            }
            /*=================================================================*/
 
-           /*==俯仰控制==*/
-           if(ctrl.pitch_ctrl == PITCH_HAND_MODE)
-               launch.PitchControl(0);
-
-           else if(ctrl.pitch_ctrl == PITCH_AUTO_MODE)
-               launch.PitchControl(0);
-
-           else if(ctrl.pitch_ctrl == PITCH_CATCH_MODE)
-               launch.PitchControl(701);
-               
-           else if(ctrl.pitch_ctrl == PITCH_RESET_MODE)
-               launch.PitchControl(0);
-               
-           else if(ctrl.pitch_ctrl == PITCH_LOCK_MODE)
-           {
-                lock_angle = launch.LauncherMotor[0].get_angle();
-                launch.PitchControl(lock_angle);
-           }
-           else if(ctrl.pitch_ctrl == PITCH_DRIBBLE_MODE)
-               launch.PitchControl(700);
-
-           else if(ctrl.pitch_ctrl == PITCH_DRIBBLE_RESET_MODE)
-                launch.PitchControl(0);
-           
-           else
-                launch.PitchControl(0);
-           /*==================================================================*/
-            
-           if(ctrl.robot_crtl == SHOOT_MODE)
-           {
-                /*==射球控制==*/
-                if(ctrl.friction_ctrl == FRICTION_OFF_MODE)
-                {
-                    launch.ShootControl(false,false,0);
-                    shoot_lock = false;
-                }
-                else if(ctrl.friction_ctrl == FRICTION_ON_MODE)
-                {
-                    if(ctrl.shoot_ctrl == SHOOT_OFF)
-                    {
-                        //launch.ShootControl(false,true,target_speed);
-                        launch.ShootControl(false,true,shoot_info.shoot_speed);
-                        shoot_lock = false;
-                    }
-                    else
-                    {
-                       //launch.ShootControl(true,true,target_speed);
-                       launch.ShootControl(true,true,shoot_info.shoot_speed);
-                       shoot_lock = true;
-                    }
-                }
-            }
-           /*===================================================================*/
-           else if(ctrl.robot_crtl == BALL_MODE)
-           {
-                if(ctrl.dribble_ctrl == DRIBBLE_OFF)
-                    launch.DribbleControl(false, false, dribble_speed_E);
-
-                if(ctrl.dribble_ctrl == DRIBBLE_ON)
-                   launch.DribbleControl(true, false, dribble_speed_E);
-
-                else if(ctrl.dribble_ctrl == DRIBBLE_CATCH_ON)
-                   launch.DribbleControl(false, true, 0);
-
-                else
-                   launch.DribbleControl(false, false, dribble_speed_E);
-           }
-           /*接球机构控制*/
-           if(ctrl.catch_ball == CATCH_OFF)
-           {
-                launch.Catch_Ctrl(false,-5100);
-           }
-           else if(ctrl.catch_ball == CATCH_ON)
-           {
-                launch.Catch_Ctrl(true,-5100);
-           }
-           else
-           {
-                launch.Catch_Ctrl(false,-5100);
-               //CATCH_OFF 接球关闭
-           }
-
-           if(ctrl.laser_ctrl == LASER_CALIBRA_ON)
-            {
-                relocate_on = BY_LASAER;
-                xQueueSend(Relocate_Port, &relocate_on, pdTRUE);
-            }
-            else if(ctrl.laser_ctrl == LASER_CALIBRA_OFF && ctrl.shoot_ctrl == SHOOT_ON 
-                && _tool_Abs(receiveyaw) < 2.0 && ctrl.chassis_ctrl == CHASSIS_LOCK_TARGET && shoot_judge == VISION)
-            {   
-                relocate_on = BY_VISION;
-                xQueueSend(Relocate_Port, &relocate_on, pdTRUE);
-            }
-            else
-            {
-                relocate_on = NOT;
-                xQueueSend(Relocate_Port, &relocate_on, pdTRUE);
-            }
 
             chassis.Motor_Control();
             launch.LaunchMotorCtrl(); 
@@ -541,8 +446,8 @@ void PidParamInit(void)
     pid_param_init(&omega_pid, PID_Incremental, 1.5, 0.0f, 0, 0.065f, 360, 0.3, 0.0008,0.02);
     pid_param_init(&vision_pid, PID_Incremental, 1.5, 0.0f, 0, 0.065f, 360, 0.60f, 0.0008f, 0);
     
-//	//用于控制半径大小的法向速度pid
-    pid_param_init(&point_X_pid, PID_Position, 2.0, 0.0f, 0, 0.1f, 180.0f, 1.0f, 0.0f, 0.66f);
+
+    plan_global_init();
 }
 
 

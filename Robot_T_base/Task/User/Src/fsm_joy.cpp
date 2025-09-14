@@ -71,20 +71,20 @@ void Air_Joy_Task(void *pvParameters)
                 
             if(_tool_Abs(air_joy.SWB - 1000) > 400)
             {                
-                ctrl.twist.linear.y = -(air_joy.LEFT_Y - 1500)/500.0 * 3.7;
-                ctrl.twist.linear.x = -(air_joy.LEFT_X - 1500)/500.0 * 3.7;
-                ctrl.twist.angular.z = (air_joy.RIGHT_X - 1500)/500.0 * 2.5;
-
-                ctrl.twist.pitch.column = (air_joy.RIGHT_Y - 1500)/500.0 * 2;
-                
-                speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y); 
+                     
                 /*======================================================*/
                 if(_tool_Abs(air_joy.SWB - 1500) < 50)//接球模式
                 {
                     ctrl.robot_crtl = BALL_MODE;  
                     
+                     
                     
-                    
+                    ctrl.twist.linear.y = -(air_joy.LEFT_Y - 1500)/500.0 * 3.7;
+                    ctrl.twist.linear.x = -(air_joy.LEFT_X - 1500)/500.0 * 3.7;
+                    ctrl.twist.angular.z = (air_joy.RIGHT_X - 1500)/500.0 * 2.5;
+
+                    ctrl.twist.pitch.column = (air_joy.RIGHT_Y - 1500)/500.0 * 2;
+                    speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
                     #if CHANGE_MODE
                             ctrl.dribble_ctrl = DRIBBLE_OFF;
                             ctrl.pitch_ctrl = PITCH_LOCK_MODE;
@@ -196,8 +196,6 @@ void Air_Joy_Task(void *pvParameters)
                 }
                 /*-========================================================-*/
 
-            #if Ring_or_ATUO_MODE    //定义在chassis_task.h中
-
                 else if(_tool_Abs(air_joy.SWB - 2000) < 50)
                 {
                     ctrl.pitch_ctrl = PITCH_AUTO_MODE;          //俯仰自动
@@ -205,16 +203,7 @@ void Air_Joy_Task(void *pvParameters)
                     if(_tool_Abs(air_joy.SWA - 2000) < 50)
                     {
                         ctrl.chassis_ctrl = CHASSIS_LOCK_TARGET;    //底盘锁定篮筐
-                        if(shoot_judge == VISION)
-                        {
-                            ctrl.chassis_ctrl = CHASSIS_LOCK_TARGET;
-                            //omniYaw_ctrl_T(&ctrl.twist.angular.z);
-                            Radar_Control(0.000001,0.000001,&ctrl.twist.angular.z);
-                        }
-                        else
-                        {
-                            speed_clock_basket_calculate(&ctrl.twist.angular.z);                                            
-                        }
+   
                     }
                     else if(_tool_Abs(air_joy.SWA - 1000) < 50)
                     {
@@ -267,12 +256,6 @@ void Air_Joy_Task(void *pvParameters)
                    xQueueSend(Shoot_ERROR_Port, &shoot_distance_ERRORsend, pdTRUE);
                 } 
 
-            #else
-                /*===========================================================*/
-                //环方案            环方案      (已废弃)   
-                                   /*哈基米*/
-            #endif
-                /*===========================================================*/
             
 		    }
             else//所有机构全部关闭
