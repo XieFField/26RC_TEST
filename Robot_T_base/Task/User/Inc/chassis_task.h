@@ -12,7 +12,7 @@
 typedef enum ROBOT_CRTL_E      
 {
     OFF_MODE,   //待机
-    SHOOT_MODE, //发射
+    ROAD_AUTO_MODE, //发射
     BALL_MODE,  //接运放
 }ROBOT_CRTL_E;
 
@@ -134,5 +134,5 @@ void Shoot_JudgeTask(void *pvParameters);
 
 
 extern Omni_Chassis chassis;
-extern Launcher launch;
+
 #endif

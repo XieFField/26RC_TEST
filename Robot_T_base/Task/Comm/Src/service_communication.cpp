@@ -119,21 +119,6 @@ void CAN1_RxCallBack(CAN_RxBuffer *RxBuffer)
             case 0x203:
                 chassis.WheelMotor[2].update(RxBuffer->data);
                 break;
-            
-            case 0x205:
-                launch.LauncherMotor[0].update(RxBuffer->data);
-                break;
-
-            case 0x206:
-                launch.LauncherMotor[1].update(RxBuffer->data);
-                break;
-            
-            case 0x207:
-                launch.LauncherMotor[2].update(RxBuffer->data);
-                break;
-                
-            case 0x208:
-            launch.LauncherMotor[3].update(RxBuffer->data);
             break;
         }
     }
@@ -167,9 +152,7 @@ void CAN2_RxCallBack(CAN_RxBuffer *RxBuffer)
 #else
     if(RxBuffer->header.IDE==CAN_ID_EXT)
     {   
-        launch.FrictionMotor[0].update_vesc(RxBuffer);
-        launch.FrictionMotor[1].update_vesc(RxBuffer);
-        launch.FrictionMotor[2].update_vesc(RxBuffer);
+        
     }
 #endif
 }

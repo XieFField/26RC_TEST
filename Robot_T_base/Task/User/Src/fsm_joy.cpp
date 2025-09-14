@@ -31,10 +31,7 @@ void Air_Joy_Task(void *pvParameters)
     static SHOOT_JUDGEMENT_E shoot_judge = POSITION;
     fsm_joy_timer.fsm_joy_timer_started = false;
     fsm_joy_timer.fsm_joy_start_tick = 0;
-    ctrl.catch_ball = CATCH_OFF;            //接球机构关闭
-    ctrl.dribble_ctrl=DRIBBLE_OFF;
-    static float shoot_distance_ERRORsend = 0.0f;
-    static bool ERROR_state = false;
+
     for(;;)
     {
         if(air_joy.RIGHT_X>1450&&air_joy.RIGHT_X<1550)
@@ -91,53 +88,6 @@ void Air_Joy_Task(void *pvParameters)
                     #else
 
                     static CONTROL_T ctrl_last;
-                    
-                    if(_tool_Abs(air_joy.SWD - 1000) < 50) //当不在接球状态下、重定位状态下，可运球
-                    {
-                        if(_tool_Abs(air_joy.SWC - 1000) < 50)
-                        {
-                            /*运球关闭*/
-                            /*
-                                俯仰:0度
-                                运球:OFF
-                                底盘:正常速度
-                            */
-                            ctrl.chassis_ctrl = CHASSIS_COM_MODE;
-                            ctrl.dribble_ctrl = DRIBBLE_OFF;
-                            ctrl.pitch_ctrl = PITCH_DRIBBLE_RESET_MODE;
-                        }
-                        else if(_tool_Abs(air_joy.SWC - 1500) < 50)
-                        {
-                            /*运球启用*/
-                            /*
-                                底盘:低速
-                                运球:开启
-                                俯仰:0度
-                            */
-
-                        
-                            ChassisYaw_Control(LASER_CALIBRA_YAW,&ctrl.twist.angular.z);
-                           ctrl.chassis_ctrl = CHASSIS_DRIBBLE_LOW;
-                           if(ctrl_last.dribble_ctrl != DRIBBLE_CATCH_ON)
-                            ctrl.dribble_ctrl = DRIBBLE_ON;
-                           ctrl.pitch_ctrl = PITCH_DRIBBLE_RESET_MODE;
-                        }
-                        else if(_tool_Abs(air_joy.SWC - 2000) < 50)
-                        {
-                            /*运完接球*/
-                            /*
-                                底盘:低速
-                                接球:开启
-                                摩擦轮:关闭
-                                推球:归初始位置
-                                俯仰:接球角度
-                            */
-                           ChassisYaw_Control(LASER_CALIBRA_YAW,&ctrl.twist.angular.z);
-                            ctrl.chassis_ctrl = CHASSIS_DRIBBLE_LOW;
-                            ctrl.dribble_ctrl = DRIBBLE_CATCH_ON;
-                            ctrl.pitch_ctrl = PITCH_DRIBBLE_MODE;
-                        }
-                    }
 
                     ctrl_last = ctrl;
 
@@ -149,9 +99,6 @@ void Air_Joy_Task(void *pvParameters)
                     if(_tool_Abs(air_joy.SWA - 1000) < 50) //SWA UP
                     {
                         
-                        
-                        ctrl.catch_ball = CATCH_OFF;            
-                        ctrl.car_comm_ctrl = CAR_COMMUICA_OFF;   
                         if(_tool_Abs(air_joy.SWD - 1000) < 50)
                         {
                             ctrl.laser_ctrl = LASER_CALIBRA_OFF;
@@ -164,7 +111,6 @@ void Air_Joy_Task(void *pvParameters)
                             ChassisYaw_Control(LASER_CALIBRA_YAW,&ctrl.twist.angular.z);  
                             
 //                            speed_clock_basket_calculate(&ctrl.twist.angular.z);
-                            ctrl.laser_ctrl = LASER_CALIBRA_ON;
                             ctrl.chassis_ctrl = CHASSIS_LOW_MODE;   
                         }
                         
@@ -183,13 +129,7 @@ void Air_Joy_Task(void *pvParameters)
                             ctrl.chassis_ctrl = CHASSIS_COM_MODE;   //普通移动
                         
                         else if(_tool_Abs(air_joy.SWD - 2000) < 50 && _tool_Abs(air_joy.SWC - 1000) < 50)
-                        {
                             ctrl.chassis_ctrl = CHASSIS_LOW_MODE;   
-                            ctrl.pitch_ctrl = PITCH_CATCH_MODE;    
-                            ctrl.car_comm_ctrl = CAR_COMMUICA_ON;  
-                        }
-                       
-                        ctrl.catch_ball = CATCH_ON;             //接球机构开启  
                         
                     }
                     #endif
@@ -199,7 +139,7 @@ void Air_Joy_Task(void *pvParameters)
                 else if(_tool_Abs(air_joy.SWB - 2000) < 50)
                 {
                     ctrl.pitch_ctrl = PITCH_AUTO_MODE;          //俯仰自动
-                    ctrl.robot_crtl = SHOOT_MODE;   //射球模式
+                    ctrl.robot_crtl = ROAD_AUTO_MODE;   //自动模式
                     if(_tool_Abs(air_joy.SWA - 2000) < 50)
                     {
                         ctrl.chassis_ctrl = CHASSIS_LOCK_TARGET;    //底盘锁定篮筐
@@ -209,51 +149,7 @@ void Air_Joy_Task(void *pvParameters)
                     {
                         ctrl.chassis_ctrl = CHASSIS_LOW_MODE;       //底盘普通移动
                     }
-
-                        ctrl.catch_ball = CATCH_OFF;            //接球机构关闭
                     
-                        if(_tool_Abs(air_joy.SWC - 1000) < 50)
-                        {
-                            ctrl.friction_ctrl = FRICTION_OFF_MODE;
-                            ctrl.shoot_ctrl = SHOOT_OFF;
-                        }
-                        else if(_tool_Abs(air_joy.SWC - 1500) < 50)
-                        {
-                            ctrl.friction_ctrl = FRICTION_ON_MODE;
-                            ctrl.shoot_ctrl = SHOOT_OFF;
-                        }
-                        else if(_tool_Abs(air_joy.SWC - 2000) < 50)
-                        {
-                            ctrl.friction_ctrl = FRICTION_ON_MODE;
-                            ctrl.shoot_ctrl = SHOOT_ON;
-                        }
-
-                   if(_tool_Abs(air_joy.SWD - 2000) < 50)   //手动发射距离矫正误差
-                   {
-                        if(_tool_Abs(air_joy.RIGHT_Y - 1500) < 250)
-                        {
-                            ERROR_state = false;
-                        }
-                        else if(_tool_Abs(air_joy.RIGHT_Y - 1950) < 50)
-                        {
-                           if(!ERROR_state)
-                            {
-                                shoot_distance_ERRORsend += 0.05f;
-                                ERROR_state = true;
-                            }
-                        }
-                        else if(_tool_Abs(air_joy.RIGHT_Y - 1050) < 50)
-                        {
-                            if(!ERROR_state)
-                            {
-                                shoot_distance_ERRORsend -= 0.05f;
-                                ERROR_state = true;
-                            }
-                        }
-                        
-                        
-                   }
-                   xQueueSend(Shoot_ERROR_Port, &shoot_distance_ERRORsend, pdTRUE);
                 } 
 
             
