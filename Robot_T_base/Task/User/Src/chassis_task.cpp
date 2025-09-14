@@ -122,9 +122,16 @@ void Chassis_Task(void *pvParameters)
            {
               plan_global_speed(1.18f, 7.13f, receivey, receivex, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
                
+               //雷达的坐标轴和底盘坐标系不是一样的
+               /*
+                    Ladar_x -> robot_y
+                    Ladar_y -> -1 * robot_x
+               */
+               
+               
                 speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y); 
 //               ctrl.twist.linear.x=-ctrl.twist.linear.x;
-                ctrl.twist.linear.y=-ctrl.twist.linear.y;
+                ctrl.twist.linear.y=-ctrl.twist.linear.y; 
                chassis.Control(ctrl.twist);
                
            }
