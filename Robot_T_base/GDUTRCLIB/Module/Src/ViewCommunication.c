@@ -55,7 +55,6 @@ void ViewCommunication_SendByte(void)
  */
 static void ViewCommunication_BytePack(uint8_t* DataPacket)
 {
-	
 	union
 	{
 		float data[3];
@@ -88,7 +87,7 @@ static void ViewCommunication_BytePack(uint8_t* DataPacket)
  * @param ready 若为1 则开始标定 若为0 就结束标定
  * 				发送的5个
  */
-static void Camera_Calibration(uint8_t ready)
+void Camera_Calibration(uint8_t ready)
 {
 	union 
 	{
@@ -116,7 +115,7 @@ static void Camera_Calibration(uint8_t ready)
 
 	data_send[23] = 0x0D;
 	data_send[24] = 0x0A;
-	HAL_UART_Transmit_DMA(ViewCommunication_UartHandle, data_send);
+	HAL_UART_Transmit_DMA(ViewCommunication_UartHandle, data_send, 25);
 }
 
 extern xQueueHandle VISION_TO_REAL_Port;
