@@ -49,6 +49,8 @@
 #include "drive_uart.h"
 
 
+#define OLD_TEST 0
+
 extern float receivex;
 extern float receivey;
 extern float receiveyaw;
@@ -79,14 +81,16 @@ float HOOP_Y = 0.000000000f;
 
 void Chassis_Task(void *pvParameters)
 {
-
+    static ReceiveRealData_S Robot_PosData = {0};
+    static ReceiveRealData_S Target_PosData = {0};
     for(;;)
     {   
         /*用于测试*/
 
       if(xQueueReceive(Chassia_Port, &ctrl, pdTRUE) == pdPASS)
       {
-        
+        xQueueReceive(VISION_TO_REAL_Port, &Robot_PosData, 0);
+        xQueueReceive(VISION_TO_TARGET_Port, &Target_PosData, 0);
         /*==底盘控制==*/
            if(ctrl.chassis_ctrl == CHASSIS_COM_MODE)
            {
@@ -120,18 +124,25 @@ void Chassis_Task(void *pvParameters)
            }
            else if(ctrl.chassis_ctrl == CHASSIS_LOCK_TARGET)
            {
-              plan_global_speed(1.18f, 7.13f, receivey, receivex, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
-               
-               //雷达的坐标轴和底盘坐标系不是一样的
+            //雷达的坐标轴和底盘坐标系不是一样的
                /*
                     Ladar_x -> robot_y
                     Ladar_y -> -1 * robot_x
                */
+            #if OLD_TEST
+              plan_global_speed(1.18f, 7.13f, receivey, receivex, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
+               
+               
                
                
                 speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y); 
 //               ctrl.twist.linear.x=-ctrl.twist.linear.x;
                 ctrl.twist.linear.y=-ctrl.twist.linear.y; 
+            #else
+                plan_global_speed(1.18f, 7.13f, Robot_PosData.y, Robot_PosData.y, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
+                speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
+                ctrl.twist.linear.y=-ctrl.twist.linear.y;
+            #endif
                chassis.Control(ctrl.twist);
                
            }

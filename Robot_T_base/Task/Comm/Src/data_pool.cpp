@@ -24,9 +24,9 @@ QueueHandle_t Receive_LaserModuleData_2_Port;        // 激光测距模块2串�
 QueueHandle_t Enable_LaserModule_Port;
 QueueHandle_t Relocate_Port;                         //重定位命令接收队列
 QueueHandle_t LED_Port;
-QueueHandle_t Shoot_Judge_Port;                      //发射仲裁队列
-QueueHandle_t Shoot_ERROR_Port;
 
+QueueHandle_t VISION_TO_REAL_Port;
+QueueHandle_t VISION_TO_TARGET_Port;
 //ROS串口接收缓存数组
 uint8_t Uart3_Rx_Buff_for_action[ACTION_UART_SIZE];
 uint8_t Uart3_Rx_Buff_for_position[POSITION_UART_SIZE];
@@ -58,6 +58,7 @@ void DataPool_Init(void)
     Relocate_Port = xQueueCreate(Relocate_Port_SIZE, sizeof(RELOCATTION_E));
 
     LED_Port = xQueueCreate(LED_Port_SIZE, sizeof(Ws2812b_SIGNAL_T));
-    Shoot_Judge_Port = xQueueCreate(Shoot_Judge_Port_SIZE, sizeof(SHOOT_JUDGEMENT_E));
-    Shoot_ERROR_Port = xQueueCreate(Shoot_ERROR_Port_SIZE, sizeof(float));
+
+    VISION_TO_REAL_Port = xQueueCreate(VISION_TO_REAL_SIZE, sizeof(ReceiveRealData_S));
+    VISION_TO_TARGET_Port = xQueueCreate(VISION_TO_TARGET_SIZE, sizeof(ReceiveRealData_S));
 }

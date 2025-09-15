@@ -7,6 +7,7 @@
 #include "usart.h"
 #include "stdbool.h"
 #include "drive_ws2812.h"
+#include "ViewCommunication.h"
 
 //ROS串口DMA接收缓数组存大小
 #define ROS_UART_SIZE 25
@@ -30,8 +31,11 @@
 #define LaserPositionin_Port_SIZE 1
 #define Enable_LaserModuleTask_SIZE 1
 #define Relocate_Port_SIZE 4
-#define Shoot_Judge_Port_SIZE 16
-#define Shoot_ERROR_Port_SIZE 16
+
+#define VISION_TO_REAL_SIZE 50
+#define VISION_TO_TARGET_SIZE 50
+
+
 
 #define LED_Port_SIZE 20
 #define VIEW_UART_SIZE 50
@@ -65,8 +69,9 @@ extern xQueueHandle Receive_LaserModuleData_2_Port;			// 激光测距模块2串�
 extern xQueueHandle Enable_LaserModule_Port;
 extern xQueueHandle Relocate_Port;
 extern xQueueHandle LED_Port;
-extern xQueueHandle Shoot_Judge_Port;
-extern xQueueHandle Shoot_ERROR_Port;
+
+extern xQueueHandle VISION_TO_REAL_Port;
+extern xQueueHandle VISION_TO_TARGET_Port;
 
 extern uint8_t Uart3_Rx_Buff_for_action[ACTION_UART_SIZE];
 

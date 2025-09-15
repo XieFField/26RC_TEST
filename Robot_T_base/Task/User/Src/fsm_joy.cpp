@@ -20,7 +20,7 @@
 #include "lora.h"
 #include "LED.h"
 #include "speed_action.h"
-
+#include "ViewCommunication.h"
 
 #define LASER_CALIBRA_YAW   0.0f   //激光重定位时候车锁定的yaw轴数值
 
@@ -28,9 +28,11 @@ void Air_Joy_Task(void *pvParameters)
 {
     //LED_Init();
     static CONTROL_T ctrl;
-    static SHOOT_JUDGEMENT_E shoot_judge = POSITION;
+    static uint8_t SWD_D_state = 0; //0为UP 1为DOWN
     fsm_joy_timer.fsm_joy_timer_started = false;
     fsm_joy_timer.fsm_joy_start_tick = 0;
+
+    static bool change_key = false;
 
     for(;;)
     {
@@ -59,8 +61,6 @@ void Air_Joy_Task(void *pvParameters)
             fsm_joy_timer.fsm_joy_timer_started = false;
             fsm_joy_timer.fsm_joy_start_tick = 0;
 		}
-
-        xQueueReceive(Shoot_Judge_Port, &shoot_judge, pdTRUE);
         
         //遥控器启动判断
         if(air_joy.LEFT_X!=0||air_joy.LEFT_Y!=0||air_joy.RIGHT_X!=0||air_joy.RIGHT_Y!=0)
@@ -73,99 +73,70 @@ void Air_Joy_Task(void *pvParameters)
                 if(_tool_Abs(air_joy.SWB - 1500) < 50)//接球模式
                 {
                     ctrl.robot_crtl = BALL_MODE;  
-                    
-                     
-                    
                     ctrl.twist.linear.y = -(air_joy.LEFT_Y - 1500)/500.0 * 3.7;
                     ctrl.twist.linear.x = -(air_joy.LEFT_X - 1500)/500.0 * 3.7;
                     ctrl.twist.angular.z = (air_joy.RIGHT_X - 1500)/500.0 * 2.5;
 
                     ctrl.twist.pitch.column = (air_joy.RIGHT_Y - 1500)/500.0 * 2;
                     speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
-                    #if CHANGE_MODE
-                            ctrl.dribble_ctrl = DRIBBLE_OFF;
-                            ctrl.pitch_ctrl = PITCH_LOCK_MODE;
-                    #else
-
-                    static CONTROL_T ctrl_last;
-
-                    ctrl_last = ctrl;
-
-                    #endif //运球挑战赛/竞技赛开关
-
-
-                    
 
                     if(_tool_Abs(air_joy.SWA - 1000) < 50) //SWA UP
-                    {
-                        
-                        if(_tool_Abs(air_joy.SWD - 1000) < 50)
-                        {
-                            ctrl.laser_ctrl = LASER_CALIBRA_OFF;
-                            #if CHANGE_MODE
-                            ctrl.chassis_ctrl = CHASSIS_COM_MODE;   //普通移动
-                            #endif
-                        }
-                        else if(_tool_Abs(air_joy.SWD - 2000) < 50 && _tool_Abs(air_joy.SWC - 1000) < 50 )
-                        {
-                            ChassisYaw_Control(LASER_CALIBRA_YAW,&ctrl.twist.angular.z);  
-                            
-//                            speed_clock_basket_calculate(&ctrl.twist.angular.z);
-                            ctrl.chassis_ctrl = CHASSIS_LOW_MODE;   
-                        }
-                        
-                        
-                        
-                            
-                        
-                    } 
-                    #if CHANGE_MODE
-                        ctrl.catch_ball = CATCH_OFF;
-                        ctrl.car_comm_ctrl = CAR_COMMUICA_OFF;
-                    #else
+                        ctrl.chassis_ctrl = CHASSIS_COM_MODE;   //普通移动
+
                     else if(_tool_Abs(air_joy.SWA - 2000) < 50) //SWA DOWN
-                    {
-                        if(_tool_Abs(air_joy.SWD - 1000) < 50 && _tool_Abs(air_joy.SWC - 1000) < 50)
-                            ctrl.chassis_ctrl = CHASSIS_COM_MODE;   //普通移动
-                        
-                        else if(_tool_Abs(air_joy.SWD - 2000) < 50 && _tool_Abs(air_joy.SWC - 1000) < 50)
-                            ctrl.chassis_ctrl = CHASSIS_LOW_MODE;   
-                        
+                    { 
+                        ctrl.chassis_ctrl = CHASSIS_LOW_MODE;       //底盘低速移动
+
+
+                        /**
+                         * @brief 相机标定
+                         *        切换到SWA DOWN的时候
+                         *        先读取当前的SWD状态(只有UP 和 DOWN两种状态)
+                         *        然后若改变SWD的状态，则发送相机标定指令
+                         *        若再次改变SWD的状态，则发送相机结束标定指令
+                         */
+                        if(!change_key) //每次进入SWA DOWM模式都会初始化一次键位
+                        {
+                            if(_tool_Abs(air_joy.SWD - 1000)<50)
+                                SWD_D_state = 0; //UP
+                            else if(_tool_Abs(air_joy.SWD - 2000)<50)
+                                SWD_D_state = 1; //DOWN
+                            change_key = true;
+                        }
+                        else if(change_key)
+                        {
+                            if(SWD_D_state == 0 && _tool_Abs(air_joy.SWD - 2000)<50) //UP -> DOWN
+                            {
+                                SWD_D_state = 1;
+                                Camera_Calibration(1); //开始标定
+                                change_key = false;
+                            }
+                            else if(SWD_D_state == 1 && _tool_Abs(air_joy.SWD - 1000)<50) //DOWN -> UP
+                            {
+                                SWD_D_state = 0;
+                                Camera_Calibration(0); //结束标定
+                                change_key = false;
+                            }
+                        }
+                        change_key = false;
                     }
-                    #endif
                 }
                 /*-========================================================-*/
 
                 else if(_tool_Abs(air_joy.SWB - 2000) < 50)
                 {
-                    ctrl.pitch_ctrl = PITCH_AUTO_MODE;          //俯仰自动
+                    change_key = false;
                     ctrl.robot_crtl = ROAD_AUTO_MODE;   //自动模式
+                    if(_tool_Abs(air_joy.SWC - 1000) < 50)
+                        ctrl.chassis_ctrl = CHASSIS_LOW_MODE;
                     if(_tool_Abs(air_joy.SWA - 2000) < 50)
-                    {
-                        ctrl.chassis_ctrl = CHASSIS_LOCK_TARGET;    //底盘锁定篮筐
-   
-                    }
-                    else if(_tool_Abs(air_joy.SWA - 1000) < 50)
-                    {
-                        ctrl.chassis_ctrl = CHASSIS_LOW_MODE;       //底盘普通移动
-                    }
-                    
+                        ctrl.chassis_ctrl = CHASSIS_LOCK_TARGET;    //底盘锁定篮筐                   
                 } 
-
-            
-		    }
+            }
             else//所有机构全部关闭
             {
                 ctrl.robot_crtl = OFF_MODE;
                 ctrl.chassis_ctrl = CHASSIS_OFF;
-                ctrl.pitch_ctrl = PITCH_RESET_MODE;
-                ctrl.friction_ctrl = FRICTION_OFF_MODE;
-                ctrl.shoot_ctrl = SHOOT_OFF;
-                ctrl.catch_ball = CATCH_OFF;
-                ctrl.car_comm_ctrl = CAR_COMMUICA_OFF;
-                ctrl.laser_ctrl = LASER_CALIBRA_OFF;
-                ctrl.dribble_ctrl = DRIBBLE_OFF;
-                
             }
             xQueueSend(Chassia_Port, &ctrl, 0);
         }
