@@ -29,7 +29,7 @@ void ViewCommunication_SendByte(void);
 
 uint32_t View_UART1_RxCallback(uint8_t *buf, uint16_t len);
 
-static void Camera_Calibration(uint8_t ready);
+void Camera_Calibration(uint8_t ready);
 
 #ifdef __cplusplus
 }
