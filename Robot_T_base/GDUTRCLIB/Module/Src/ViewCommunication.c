@@ -37,7 +37,7 @@ ReceiveRealData_S Pos_Target = {0};
 
 
 
-static void ViewCommunication_BytePack(uint8_t* DataPacket);
+//static void ViewCommunication_BytePack(uint8_t* DataPacket);
 
 void ViewCommunication_SendByte(void)
 {
