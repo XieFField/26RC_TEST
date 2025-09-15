@@ -127,9 +127,9 @@ void Air_Joy_Task(void *pvParameters)
                 {
                     change_key = false;
                     ctrl.robot_crtl = ROAD_AUTO_MODE;   //自动模式
-                    if(_tool_Abs(air_joy.SWC - 1000) < 50)
+                    if(_tool_Abs(air_joy.SWA - 1000) < 50)
                         ctrl.chassis_ctrl = CHASSIS_LOW_MODE;
-                    if(_tool_Abs(air_joy.SWA - 2000) < 50)
+                    else if(_tool_Abs(air_joy.SWA - 2000) < 50)
                         ctrl.chassis_ctrl = CHASSIS_LOCK_TARGET;    //底盘锁定篮筐                   
                 } 
             }
