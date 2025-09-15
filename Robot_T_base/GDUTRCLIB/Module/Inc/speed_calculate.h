@@ -10,7 +10,7 @@
 #define ROBOT_DIAMETER 0.6f  // 定义机器人直径，单位：米
 void speed_world_calculate(float *vx,float *vy);
 void speed_clock_basket_calculate(float *w);
-
+void Plan_Global_Accel(float MAX_ACCEL, float MAX_DECLE, float *global_vx, float *global_vy, int flag);
 void plan_global_speed(float target_x, float target_y, float current_x, float current_y, float* global_vx, float* global_vy);
 void plan_global_init(void);
 #endif 

@@ -5,8 +5,8 @@
  * @version 0.1
  */
 #include "speed_calculate.h"
-
-
+#include "ViewCommunication.h"
+#include "drive_tim.h"
 void speed_world_calculate(float *vx,float *vy){
 float COS,SIN;
 	 COS = cos (RealPosData.world_yaw * PI /180);
@@ -36,7 +36,31 @@ void speed_clock_basket_calculate(float *w)
 	calc_error();
 	*w+=W;
 }
+float dt;
+uint32_t last_time;
+uint32_t now_time;
+void update_timestamp()
+{
 
+		if(last_time == 0)
+		{
+			last_time = Get_SystemTimer();
+			return;
+		}
+		now_time = 	 Get_SystemTimer();
+
+		//overflow
+		if(now_time < last_time)
+			dt = (float)((now_time + 0xFFFFFFFF) - last_time);  //now_time is 32bit, use 0XFFFFFFFF to avoid overflow
+		else
+			dt = (float)(now_time - last_time);
+
+		last_time = now_time;
+
+		dt *= 0.000001f;
+
+}
+	
 PID_T point_X_pid = {0};
 PID_T point_Y_pid = {0};
 
@@ -46,6 +70,55 @@ void plan_global_init(void)
     pid_param_init(&point_Y_pid, PID_Position, 2.0, 0.0f, 0, 0.1f, 180.0f, 1.0f, 0.0f, 0.33f);
 }
 
+
+
+
+void Plan_Global_Accel(float MAX_ACCEL, float MAX_DECLE, float *global_vx, float *global_vy, int flag) 
+{
+    // 用于斜坡加速的变量
+    static float last_vx = 0.0f;
+    static float last_vy = 0.0f;
+	update_timestamp();
+	if(flag)
+	{
+		// 速度斜坡/平滑处理（注意加减速的符号应该相同）
+		//加速路段
+		if(*global_vx > 0 && *global_vx >= last_vx)      
+		*global_vx = last_vx + MAX_ACCEL*dt;
+
+		else if(*global_vx < 0 && *global_vx <= last_vx)
+		*global_vx = last_vx - MAX_ACCEL*dt;	
+		
+		if(*global_vy > 0 && *global_vy >= last_vy)     
+		*global_vy = last_vy + MAX_ACCEL*dt;
+
+		else if(*global_vy < 0 && *global_vy <= last_vy)
+		*global_vy = last_vy - MAX_ACCEL*dt;
+		
+		//减速路段,先注释掉，因为支持瞬时减速
+		if(*global_vx > 0 && *global_vx <= last_vx)     
+		*global_vx = last_vx - MAX_DECLE*dt;
+
+		else if(*global_vx < 0 && *global_vx >= last_vx)
+		*global_vx = last_vx + MAX_DECLE*dt;	
+		
+		if(*global_vy > 0 && *global_vy <= last_vy)     
+		*global_vy = last_vy - MAX_DECLE*dt;
+
+		else if(*global_vy < 0 && *global_vy >= last_vy)
+		*global_vy = last_vy + MAX_DECLE*dt;			
+
+	}
+	else
+	{
+		*global_vx = 0.0f;
+		*global_vy = 0.0f;
+		last_vx = 0.0f;
+		last_vy = 0.0f;
+	}
+	last_vx = *global_vx;
+    last_vy = *global_vy;
+}
 
 /**
  * @brief 为一个点在二维平面上规划速度，输出全局坐标系下的速度指令。
@@ -61,16 +134,17 @@ void plan_global_init(void)
  */
 void plan_global_speed(float target_x, float target_y, float current_x, float current_y, float *global_vx, float *global_vy) 
 {
+	static float desired_vx = 0;
+	static float desired_vy = 0;
     // --- 控制参数 ---
     const float K_P_APPROACH = 0.8f;      // 接近阶段的比例增益
     const float GOAL_TOLERANCE = 0.01f;   // 到达目标的距离容忍值 (米)
     const float MAX_LINEAR_SPEED = 1.0f;  // 最大合速度 (米/秒)
-    const float MAX_ACCEL = 0.02f;        // 每次调用增加的速度最大值 (用于平滑)
+    const float MAX_ACCEL = 0.1f;        // 每次调用增加的速度最大值 (用于平滑)
+	const float MAX_DECLE = 0.5f;        // 每次调用增加的速度最大值 (用于平滑)
     const float LOCKON_PERCENT = 0.02;   // 切换到PID锁点的距离百分比
-    
-    // 用于斜坡加速的变量
-    static float last_vx = 0.0f;
-    static float last_vy = 0.0f;
+    static int Accel_Flag = 1;					//平滑速度规划器
+	static int Update_Flag = 1;					//目标点更新开关
 
     // 用于检测目标点变化和存储初始距离
     static float last_target_x = -1e9f;
@@ -78,12 +152,12 @@ void plan_global_speed(float target_x, float target_y, float current_x, float cu
     static float initial_distance_to_goal = 0.0f;
 
     // --- 逻辑开始 ---
-
+	
     // 1. 检测目标点是否发生变化
     if (fabs(target_x - last_target_x) > 1e-6 || fabs(target_y - last_target_y) > 1e-6) {
         initial_distance_to_goal = sqrt(pow(target_x - current_x, 2) + pow(target_y - current_y, 2));
-        last_vx = 0.0; // 新目标从静止开始
-        last_vy = 0.0;
+        Accel_Flag = 0;
+		Update_Flag = 0;
         last_target_x = target_x;
         last_target_y = target_y;
     }
@@ -95,11 +169,8 @@ void plan_global_speed(float target_x, float target_y, float current_x, float cu
 
     // 3. 判断是否已到达目标点
     if (distance_to_goal < GOAL_TOLERANCE) {
-        *global_vx = 0.0;
-        *global_vy = 0.0;
-        last_vx = 0.0;
-        last_vy = 0.0;
-        return;
+        Accel_Flag = 0;
+		Update_Flag = 1;
     }
 
     // 4. 根据距离选择控制策略
@@ -107,16 +178,12 @@ void plan_global_speed(float target_x, float target_y, float current_x, float cu
         // --- 策略B: PID锁点 ---
         *global_vx = pid_calc(&point_X_pid, target_x, current_x);
         *global_vy = pid_calc(&point_Y_pid, target_y, current_y);
-        
-        last_vx = *global_vx;
-        last_vy = *global_vy;
-
     } 
     else 
     {
         // --- 策略A: 比例控制接近 ---
-        double desired_vx = error_x * K_P_APPROACH;
-        double desired_vy = error_y * K_P_APPROACH;
+        desired_vx = error_x * K_P_APPROACH;
+        desired_vy = error_y * K_P_APPROACH;
 
         // 限制最大合速度
         double total_speed = sqrt(desired_vx * desired_vx + desired_vy * desired_vy);
@@ -125,27 +192,14 @@ void plan_global_speed(float target_x, float target_y, float current_x, float cu
             desired_vx = (desired_vx / total_speed) * MAX_LINEAR_SPEED;
             desired_vy = (desired_vy / total_speed) * MAX_LINEAR_SPEED;
         }
-
-        // 速度斜坡/平滑处理
-        if (desired_vx > last_vx + MAX_ACCEL) 
-            *global_vx = last_vx + MAX_ACCEL;
-
-        else if (desired_vx < last_vx - MAX_ACCEL) 
-            *global_vx = last_vx - MAX_ACCEL;
-
-        else 
-            *global_vx = desired_vx;
-
-        if (desired_vy > last_vy + MAX_ACCEL) 
-            *global_vy = last_vy + MAX_ACCEL;
-
-        else if (desired_vy < last_vy - MAX_ACCEL) 
-            *global_vy = last_vy - MAX_ACCEL;
-
-        else 
-            *global_vy = desired_vy;
-        
-        last_vx = *global_vx;
-        last_vy = *global_vy;
+		*global_vx = desired_vx;
+		*global_vy = desired_vy;
     }
+	//平滑速度限幅器
+	Plan_Global_Accel(MAX_ACCEL,MAX_DECLE, global_vx, global_vy, Accel_Flag);
+	//目标点更新器
+	Camera_Calibration(Update_Flag);
+	//重置开关状态
+	Accel_Flag = 1;
+
 }

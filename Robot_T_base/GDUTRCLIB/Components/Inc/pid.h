@@ -25,7 +25,7 @@ class PidTimer
 {
 public:
     static uint8_t getMicroTick_regist(uint32_t (*getTick_fun)(void));
-
+	
 protected:
     static SystemTick_Fun get_systemTick;
     float  dt;

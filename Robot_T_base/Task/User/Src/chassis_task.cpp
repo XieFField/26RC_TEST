@@ -139,8 +139,11 @@ void Chassis_Task(void *pvParameters)
 //               ctrl.twist.linear.x=-ctrl.twist.linear.x;
                 ctrl.twist.linear.y=-ctrl.twist.linear.y; 
             #else
-                plan_global_speed(1.18f, 7.13f, Robot_PosData.y, Robot_PosData.y, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
-                speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
+                plan_global_speed(Pos_Target.y, Pos_Target.x, Pos_Now.y, Pos_Now.x, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
+                Plan_Global_Accel(1, 8, &ctrl.twist.linear.x, &ctrl.twist.linear.y, 1);
+			   speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
+				
+
                 ctrl.twist.linear.y=-ctrl.twist.linear.y;
             #endif
                chassis.Control(ctrl.twist);

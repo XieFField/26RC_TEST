@@ -26,7 +26,8 @@ typedef struct ReceiveRealData_S{
 
 void ViewCommunication_BytePack(uint8_t* DataPacket);
 void ViewCommunication_SendByte(void);
-
+extern ReceiveRealData_S Pos_Now;
+extern ReceiveRealData_S Pos_Target;
 uint32_t View_UART1_RxCallback(uint8_t *buf, uint16_t len);
 
 void Camera_Calibration(uint8_t ready);
