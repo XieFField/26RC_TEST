@@ -84,10 +84,10 @@ void plan_manhattan(float *target_x_ptr, float *target_y_ptr, float current_x, f
     {
         case MANHATTAN_IDLE:
             // 决策中心：决定下一步走X还是Y，并锁存正交轴坐标
-            if (!is_x_path_done && fabs(final_target_x - current_x) > AXIS_TOLERANCE) {
+            if (!is_x_path_done && fabs(final_target_x - current_x) >= AXIS_TOLERANCE) {
                 manhattan_state = MANHATTAN_MOVING_X;
                 latched_y = current_y; // 【关键】锁存当前的Y坐标
-            } else if (!is_y_path_done && fabs(final_target_y - current_y) > AXIS_TOLERANCE) {
+            } else if (!is_y_path_done && fabs(final_target_y - current_y) >= AXIS_TOLERANCE) {
                 manhattan_state = MANHATTAN_MOVING_Y;
                 latched_x = current_x; // 【关键】锁存当前的X坐标
             } else {
@@ -165,49 +165,42 @@ void plan_global_init(void)
 
 void Plan_Global_Accel(float MAX_ACCEL, float MAX_DECLE, float *global_vx, float *global_vy, int flag) 
 {
-    // 用于斜坡加速的变量
-    static float last_vx = 0.0f;
-    static float last_vy = 0.0f;
-	update_timestamp();
-	if(flag)
-	{
-		// 速度斜坡/平滑处理（注意加减速的符号应该相同）
-		//加速路段
-		if(*global_vx > 0 && *global_vx >= last_vx)      
-		*global_vx = last_vx + MAX_ACCEL*dt;
+    static float current_vx = 0.0f;
+    static float current_vy = 0.0f;
+    update_timestamp();
 
-		else if(*global_vx < 0 && *global_vx <= last_vx)
-		*global_vx = last_vx - MAX_ACCEL*dt;	
-		
-		if(*global_vy > 0 && *global_vy >= last_vy)     
-		*global_vy = last_vy + MAX_ACCEL*dt;
+    if(!flag)
+    {
+        current_vx = 0.0f;
+        current_vy = 0.0f;
+    }
+    else
+    {
+        // --- X轴速度处理 ---
+        if (*global_vx > current_vx) { // 需要加速 (正向)
+            current_vx += MAX_ACCEL * dt;
+            if (current_vx > *global_vx) current_vx = *global_vx; // 防止加速过头
+        } 
+        else if (*global_vx < current_vx) { // 需要减速 (正向) 或 加速 (负向)
+            current_vx -= MAX_DECLE * dt;
+            if (current_vx < *global_vx) current_vx = *global_vx; // 防止减速/加速过头
+        }
+        // 如果 *global_vx == current_vx，则什么都不做
 
-		else if(*global_vy < 0 && *global_vy <= last_vy)
-		*global_vy = last_vy - MAX_ACCEL*dt;
-		
-		//减速路段,先注释掉，因为支持瞬时减速
-		if(*global_vx > 0 && *global_vx <= last_vx)     
-		*global_vx = last_vx - MAX_DECLE*dt;
+        // --- Y轴速度处理 ---
+        if (*global_vy > current_vy) { // 需要加速 (正向)
+            current_vy += MAX_ACCEL * dt;
+            if (current_vy > *global_vy) current_vy = *global_vy;
+        } 
+        else if (*global_vy < current_vy) { // 需要减速 (正向) 或 加速 (负向)
+            current_vy -= MAX_DECLE * dt;
+            if (current_vy < *global_vy) current_vy = *global_vy;
+        }
+    }
 
-		else if(*global_vx < 0 && *global_vx >= last_vx)
-		*global_vx = last_vx + MAX_DECLE*dt;	
-		
-		if(*global_vy > 0 && *global_vy <= last_vy)     
-		*global_vy = last_vy - MAX_DECLE*dt;
-
-		else if(*global_vy < 0 && *global_vy >= last_vy)
-		*global_vy = last_vy + MAX_DECLE*dt;			
-
-	}
-	else
-	{
-		*global_vx = 0.0f;
-		*global_vy = 0.0f;
-		last_vx = 0.0f;
-		last_vy = 0.0f;
-	}
-	last_vx = *global_vx;
-    last_vy = *global_vy;
+    // 输出最终平滑后的速度
+    *global_vx = current_vx;
+    *global_vy = current_vy;
 }
 
 // 状态枚举可以简化，不再需要专门的曼哈顿状态
@@ -288,7 +281,7 @@ void plan_global_speed(float target_x, float target_y, float current_x, float cu
             // 【关键】状态切换的判断，始终基于到“最终目标点”的距离
             double distance_to_final_goal = sqrt(pow(target_x - current_x, 2) + pow(target_y - current_y, 2));
             
-            if (distance_to_final_goal < GOAL_TOLERANCE) 
+            if (distance_to_final_goal <= GOAL_TOLERANCE) 
 			{
                 current_state = PLAN_STATE_GOAL_REACHED;
             } 
@@ -329,7 +322,7 @@ void plan_global_speed(float target_x, float target_y, float current_x, float cu
             break;
     }
 
-    // --- 功能 3: 通用速度后处理 ---
+    // --- 功能 3: 通用速度后处理(非PID情况） ---
     if (!is_pid_active)
     {
         double total_speed = sqrt(desired_vx * desired_vx + desired_vy * desired_vy);
@@ -340,10 +333,11 @@ void plan_global_speed(float target_x, float target_y, float current_x, float cu
         }
         *global_vx = desired_vx;
         *global_vy = desired_vy;
+		Plan_Global_Accel(MAX_ACCEL, MAX_DECLE, global_vx, global_vy, Accel_Flag);
     }
 
     // --- 功能 4: 最终输出处理 ---
-    Plan_Global_Accel(MAX_ACCEL, MAX_DECLE, global_vx, global_vy, Accel_Flag);
+   
     Camera_Calibration(Update_Flag);
     Accel_Flag = 1;
 }
