@@ -65,12 +65,13 @@ void Air_Joy_Task(void *pvParameters)
         //遥控器启动判断
         if(air_joy.LEFT_X!=0||air_joy.LEFT_Y!=0||air_joy.RIGHT_X!=0||air_joy.RIGHT_Y!=0)
         {
-                
+            // static ReceiveRealData_S Pos_Now = {0};
+            // xQueueReceive(VISION_TO_REAL_Port, &Pos_Now, 0);
             if(_tool_Abs(air_joy.SWB - 1000) > 400)
             {                
-                     
+                
                 /*======================================================*/
-                if(_tool_Abs(air_joy.SWB - 1500) < 50)//接球模式
+                if(_tool_Abs(air_joy.SWB - 1500) < 50)
                 {
                     ctrl.robot_crtl = BALL_MODE;  
                     ctrl.twist.linear.y = -(air_joy.LEFT_Y - 1500)/500.0 * 3.7;
@@ -85,9 +86,10 @@ void Air_Joy_Task(void *pvParameters)
 
                     else if(_tool_Abs(air_joy.SWA - 2000) < 50) //SWA DOWN
                     { 
-                        ctrl.chassis_ctrl = CHASSIS_LOW_MODE;       //底盘低速移动
+                       
 
-
+                        //ChassisYaw_Control(0.45/M_PI*180, Pos_Now.yaw*180/M_PI, &ctrl.twist.linear.z);//锁角
+                        ctrl.chassis_ctrl = CHASSIS_CAMERA_CALIBRA; //相机标定模式
                         /**
                          * @brief 相机标定
                          *        切换到SWA DOWN的时候

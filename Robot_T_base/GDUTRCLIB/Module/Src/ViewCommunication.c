@@ -35,52 +35,10 @@ float receiveyaw;
 ReceiveRealData_S Pos_Now = {0};
 ReceiveRealData_S Pos_Target = {0};
 
-
-
-static void ViewCommunication_BytePack(uint8_t* DataPacket);
-
-void ViewCommunication_SendByte(void)
-{
-	//uint8_t DataPacket[11] = { 0 };		// 定义包含单字节有效载荷的数据包
-
-	ViewCommunication_BytePack(DataPacket);
-
-//	printf_DMA("%f\r\n", DataPacket);
-	HAL_UART_Transmit_DMA(ViewCommunication_UartHandle, DataPacket,17);
-}
-
-
-/**
- * 旧的应该用不上力
- */
-static void ViewCommunication_BytePack(uint8_t* DataPacket)
-{
-	union
-	{
-		float data[3];
-		uint8_t buffer[12]
-	}temp;
-	temp.data[0]=RealPosData.world_x;
-	temp.data[1]=RealPosData.world_y;
-	temp.data[2]=RealPosData.world_yaw;
-	DataPacket[0] = 0x55;					// 数据包头
-	DataPacket[1] = 0xAA;					// 数据包头
-	DataPacket[2] = 0x0C;					// 数据包长度
-	DataPacket[3] = temp.buffer[0];	// 有效载荷
-	DataPacket[4] = temp.buffer[1];
-	DataPacket[5] = temp.buffer[2];
-	DataPacket[6] = temp.buffer[3];					
-	DataPacket[7] = temp.buffer[4];	
-	DataPacket[8] = temp.buffer[5];
-	DataPacket[9] = temp.buffer[6];	
-	DataPacket[10] =temp.buffer[7];
-	DataPacket[11] =temp.buffer[8];
-	DataPacket[12] =temp.buffer[9];					
-	DataPacket[13] =temp.buffer[10];	
-	DataPacket[14] =temp.buffer[11];
-	DataPacket[15] = 0x0D;
-	DataPacket[16] = 0x0A;
-}
+struct{
+	ReceiveRealData_S Pos_Now ;
+	ReceiveRealData_S Pos_Target
+}ReceiveData_total;
 
 /**
  * @brief 相机标定秘籍位置
@@ -139,8 +97,13 @@ void Update_ReceiveData(ReceiveData_E data)
 		Pos_Target.yaw = data.RealData[4];
 	}
 
-	xQueueSend(VISION_TO_REAL_Port, &Pos_Now, 0);
-	xQueueSend(VISION_TO_TARGET_Port, &Pos_Target, 0);
+	// 中断安全的队列发送：xQueueSendFromISR
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	if(signal_ == 0)
+		xQueueSendFromISR(VISION_TO_REAL_Port, &Pos_Now, &xHigherPriorityTaskWoken);
+	else if(signal_ == 1)
+		xQueueSendFromISR(VISION_TO_TARGET_Port, &Pos_Target, &xHigherPriorityTaskWoken);
 }
 
 

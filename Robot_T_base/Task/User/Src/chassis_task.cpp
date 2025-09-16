@@ -89,20 +89,13 @@ void Chassis_Task(void *pvParameters)
 
       if(xQueueReceive(Chassia_Port, &ctrl, pdTRUE) == pdPASS)
       {
-        xQueueReceive(VISION_TO_REAL_Port, &Robot_PosData, 0);
-        xQueueReceive(VISION_TO_TARGET_Port, &Target_PosData, 0);
+        xQueueReceive(VISION_TO_REAL_Port, &Robot_PosData, pdTRUE);
+        xQueueReceive(VISION_TO_TARGET_Port, &Target_PosData, pdTRUE);
         /*==底盘控制==*/
            if(ctrl.chassis_ctrl == CHASSIS_COM_MODE)
            {
                //普通控制模式
                chassis.Control(ctrl.twist);
-           }
-           else if(ctrl.chassis_ctrl == CHASSIS_CALIBRA_MODE)
-           {
-               //激光校准模式
-               //还没做
-               Robot_Twist_t twist = {0};
-               chassis.Control(twist);
            }
            else if(ctrl.chassis_ctrl == CHASSIS_LOW_MODE) //低速模式
            {
@@ -122,6 +115,16 @@ void Chassis_Task(void *pvParameters)
                Robot_Twist_t twist = {0};
                chassis.Control(twist);
            }
+           else if(ctrl.chassis_ctrl == CHASSIS_CAMERA_CALIBRA)
+           {
+               //相机标定模式
+               ChassisYaw_Control(0.45/M_PI*180, Robot_PosData.yaw*180/M_PI, &ctrl.twist.linear.z);//锁角
+               plan_global_speed(-0.88f, 0.98f, Robot_PosData.y, Robot_PosData.x, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
+                speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
+                ctrl.twist.linear.y=-ctrl.twist.linear.y;
+               chassis.Control(ctrl.twist);
+           }
+
            else if(ctrl.chassis_ctrl == CHASSIS_LOCK_TARGET)
            {
             //雷达的坐标轴和底盘坐标系不是一样的
@@ -139,18 +142,12 @@ void Chassis_Task(void *pvParameters)
 //               ctrl.twist.linear.x=-ctrl.twist.linear.x;
                 ctrl.twist.linear.y=-ctrl.twist.linear.y; 
             #else
-                plan_global_speed(1.18f, 7.13f, Robot_PosData.y, Robot_PosData.x, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
+                plan_global_speed(Target_PosData.y, Target_PosData.x, Robot_PosData.y, Robot_PosData.x, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
                 speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
                 ctrl.twist.linear.y=-ctrl.twist.linear.y;
             #endif
                chassis.Control(ctrl.twist);
                
-           }
-           else if(ctrl.chassis_ctrl == CHASSIS_DRIBBLE_LOW)
-           {
-                ctrl.twist.linear.x = ctrl.twist.linear.x * 0.2;
-                ctrl.twist.linear.y = ctrl.twist.linear.y * 0.2;
-                chassis.Control(ctrl.twist);
            }
            else
            {
