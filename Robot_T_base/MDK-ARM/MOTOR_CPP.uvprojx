@@ -1941,9 +1941,9 @@
               <FilePath>..\Task\User\Src\LaserPositioning_Task.c</FilePath>
             </File>
             <File>
-              <FileName>fsm_joy.cpp</FileName>
+              <FileName>chassis_task.cpp</FileName>
               <FileType>8</FileType>
-              <FilePath>..\Task\User\Src\fsm_joy.cpp</FilePath>
+              <FilePath>..\Task\User\Src\chassis_task.cpp</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -1996,9 +1996,9 @@
               </FileOption>
             </File>
             <File>
-              <FileName>chassis_task.cpp</FileName>
+              <FileName>fsm_joy.cpp</FileName>
               <FileType>8</FileType>
-              <FilePath>..\Task\User\Src\chassis_task.cpp</FilePath>
+              <FilePath>..\Task\User\Src\fsm_joy.cpp</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>

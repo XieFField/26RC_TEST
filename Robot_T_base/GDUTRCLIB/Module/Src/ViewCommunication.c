@@ -1,32 +1,32 @@
 /**
  * @file ViewCommunication.c
  * @author Wu Jia / Luo Qi Ling
- * @brief ÓëÊÓ¾õÍ¨Ñ¶½Ó¿Ú
+ * @brief ä¸è§†è§‰é€šè®¯æ¥å£
  */
-#include <stdint.h>							// C ÓïÑÔ±ê×¼¿âÍ·ÎÄ¼ş£¬°üº¬ÕûÊıÀàĞÍ¶¨ÒåµÈ
-#include <string.h>							// C ÓïÑÔ±ê×¼¿âÍ·ÎÄ¼ş£¬°üº¬×Ö·û´®´¦Àíº¯ÊıµÈ
-#include "stm32f4xx_hal.h"					// main.h Í·ÎÄ¼şÀïÃæÆäÊµÒÑ¾­°üº¬ÁËÕâ¸öÍ·ÎÄ¼ş
-#include "cmsis_os.h"						// FreeRTOS Í·ÎÄ¼ş
-#include "FreeRTOS.h"						// FreeRTOS Í·ÎÄ¼ş
-#include "main.h"							// HAL ¿âÍ·ÎÄ¼ş
-#include "task.h"							// FreeRTOS Í·ÎÄ¼ş£¬µ«ÊÇÎÒ²»ÖªµÀÒª²»Òª°üº¬Õâ¸öÍ·ÎÄ¼ş
-#include "drive_uart.h"						// ´®¿ÚÇı¶¯Í·ÎÄ¼ş
-#include "ViewCommunication.h"		        // °å¼äÍ¨ĞÅÄ£¿éÍ·ÎÄ¼ş
+#include <stdint.h>							// C è¯­è¨€æ ‡å‡†åº“å¤´æ–‡ä»¶ï¼ŒåŒ…å«æ•´æ•°ç±»å‹å®šä¹‰ç­‰
+#include <string.h>							// C è¯­è¨€æ ‡å‡†åº“å¤´æ–‡ä»¶ï¼ŒåŒ…å«å­—ç¬¦ä¸²å¤„ç†å‡½æ•°ç­‰
+#include "stm32f4xx_hal.h"					// main.h å¤´æ–‡ä»¶é‡Œé¢å…¶å®å·²ç»åŒ…å«äº†è¿™ä¸ªå¤´æ–‡ä»¶
+#include "cmsis_os.h"						// FreeRTOS å¤´æ–‡ä»¶
+#include "FreeRTOS.h"						// FreeRTOS å¤´æ–‡ä»¶
+#include "main.h"							// HAL åº“å¤´æ–‡ä»¶
+#include "task.h"							// FreeRTOS å¤´æ–‡ä»¶ï¼Œä½†æ˜¯æˆ‘ä¸çŸ¥é“è¦ä¸è¦åŒ…å«è¿™ä¸ªå¤´æ–‡ä»¶
+#include "drive_uart.h"						// ä¸²å£é©±åŠ¨å¤´æ–‡ä»¶
+#include "ViewCommunication.h"		        // æ¿é—´é€šä¿¡æ¨¡å—å¤´æ–‡ä»¶
 #include "position.h"
 #include <string.h>
 #include "queue.h"
 
 #define ViewCommunication_UartHandle &huart1	
 
-static uint8_t DataPacket[17] = { 0 };		// ¶¨Òå°üº¬µ¥×Ö½ÚÓĞĞ§ÔØºÉµÄÊı¾İ°ü
+static uint8_t DataPacket[17] = { 0 };		// å®šä¹‰åŒ…å«å•å­—èŠ‚æœ‰æ•ˆè½½è·çš„æ•°æ®åŒ…
 
-float receivex;		//·ÏÆú¾É°¸£¬µ«Ò»É¾ºÃ¶àµØ·½¸ú×ÅÒªÉ¾£¬ÏÈ²»¹ÜÁË
+float receivex;		//åºŸå¼ƒæ—§æ¡ˆï¼Œä½†ä¸€åˆ å¥½å¤šåœ°æ–¹è·Ÿç€è¦åˆ ï¼Œå…ˆä¸ç®¡äº†
 float receivey;
 float receiveyaw;
 
 /**
- * @def ÊÓ¾õÍ¨Ñ¶--½ÓÊÕ
- * @brief	5¸öfloatÊı¾İÈçÏÂ
+ * @def è§†è§‰é€šè®¯--æ¥æ”¶
+ * @brief	5ä¸ªfloatæ•°æ®å¦‚ä¸‹
  */
 
 
@@ -41,32 +41,32 @@ struct{
 }ReceiveData_total;
 
 /**
- * @brief Ïà»ú±ê¶¨ÃØ¼®Î»ÖÃ
- * @param ready ÈôÎª1 Ôò¿ªÊ¼±ê¶¨ ÈôÎª0 ¾Í½áÊø±ê¶¨
- * 				·¢ËÍµÄ5¸ö
+ * @brief ç›¸æœºæ ‡å®šç§˜ç±ä½ç½®
+ * @param ready è‹¥ä¸º1 åˆ™å¼€å§‹æ ‡å®š è‹¥ä¸º0 å°±ç»“æŸæ ‡å®š
+ * 				å‘é€çš„5ä¸ª
  */
 void Camera_Calibration(uint8_t ready)
 {
 	union 
 	{
 		/* data */
-		//ÔİÊ±»¹ÊÇ5¸öfloat£¬µ«Ö»ÊÇµÚÒ»¸öfloatÓĞÓÃ£¬ÊÓ¾õµÄÒªÇó
+		//æš‚æ—¶è¿˜æ˜¯5ä¸ªfloatï¼Œä½†åªæ˜¯ç¬¬ä¸€ä¸ªfloatæœ‰ç”¨ï¼Œè§†è§‰çš„è¦æ±‚
 		float data[5];
 		uint8_t buffer[20]
 	}camera_cmd;
 
 	if(ready)
-		camera_cmd.data[0] = 0;	//0Îª¿ªÊ¼±ê¶¨ĞÅºÅ
+		camera_cmd.data[0] = 0;	//0ä¸ºå¼€å§‹æ ‡å®šä¿¡å·
 	else if(!ready)
-		camera_cmd.data[0] = 1; //1Îª½áÊø±ê¶¨µÄĞÅºÅ
+		camera_cmd.data[0] = 1; //1ä¸ºç»“æŸæ ‡å®šçš„ä¿¡å·
 
 	for(int i = 1; i < 5; i++)
 		camera_cmd.data[i] = 0;
 	
 	static uint8_t data_send[25];
-	data_send[0] = 0x55;	//°üÍ·1
-	data_send[1] = 0xAA;	//°üÍ·2
-	data_send[2] = 0x14;	//Êı¾İ°ü³¤¶È
+	data_send[0] = 0x55;	//åŒ…å¤´1
+	data_send[1] = 0xAA;	//åŒ…å¤´2
+	data_send[2] = 0x14;	//æ•°æ®åŒ…é•¿åº¦
 
 	for(int i = 0; i < 20; i++)
 		data_send[3 + i] = camera_cmd.buffer[i];
@@ -97,7 +97,7 @@ void Update_ReceiveData(ReceiveData_E data)
 		Pos_Target.yaw = data.RealData[4];
 	}
 
-	// ÖĞ¶Ï°²È«µÄ¶ÓÁĞ·¢ËÍ£ºxQueueSendFromISR
+	// ä¸­æ–­å®‰å…¨çš„é˜Ÿåˆ—å‘é€ï¼šxQueueSendFromISR
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 	if(signal_ == 0)
@@ -120,7 +120,7 @@ uint32_t View_UART1_RxCallback(uint8_t *buf, uint16_t len)
 		{
 			case 0:
 			{
-				if (buf[n] == 0x55)   //½ÓÊÕ°üÍ·1
+				if (buf[n] == 0x55)   //æ¥æ”¶åŒ…å¤´1
 				{
 					cnt++;
 				}
@@ -133,7 +133,7 @@ uint32_t View_UART1_RxCallback(uint8_t *buf, uint16_t len)
 			}
 			case 1:
 			{
-				if (buf[n] == 0xAA) //½ÓÊÕ°üÍ·2
+				if (buf[n] == 0xAA) //æ¥æ”¶åŒ…å¤´2
 				{
 					cnt++;
 				}
@@ -147,7 +147,7 @@ uint32_t View_UART1_RxCallback(uint8_t *buf, uint16_t len)
 
 			case 2:
 			{
-				if (buf[n] == 0x14) //½ÓÊÕ³¤¶È 20
+				if (buf[n] == 0x14) //æ¥æ”¶é•¿åº¦ 20
 				{
 					cnt++;
 				}
@@ -158,7 +158,7 @@ uint32_t View_UART1_RxCallback(uint8_t *buf, uint16_t len)
 				n++;
 				break;
 			}
-			case 3://¿ªÊ¼½ÓÊÕÊı¾İ
+			case 3://å¼€å§‹æ¥æ”¶æ•°æ®
 			{
 				uint8_t j;
 				
@@ -175,7 +175,7 @@ uint32_t View_UART1_RxCallback(uint8_t *buf, uint16_t len)
 
 			case 4:
 			{
-				if (buf[n] == 0x0D)  //½ÓÊÕ°üÎ²1
+				if (buf[n] == 0x0D)  //æ¥æ”¶åŒ…å°¾1
 				{
 					cnt++;
 				}
@@ -189,7 +189,7 @@ uint32_t View_UART1_RxCallback(uint8_t *buf, uint16_t len)
 			
 			case 5:
 			{
-				if (buf[n] == 0x0A)     //°üÎ²2	
+				if (buf[n] == 0x0A)     //åŒ…å°¾2	
 					Update_ReceiveData(ReceiveData);
 				
 				cnt = 0;

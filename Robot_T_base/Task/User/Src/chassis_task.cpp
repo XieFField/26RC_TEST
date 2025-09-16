@@ -175,7 +175,7 @@ void PidParamInit(void)
     chassis.Pid_Mode_Init(2, 0.1f, 0.0f, false, true);
 
 //    //用于控制目标角度的角速度pid
-    pid_param_init(&yaw_pid, PID_Position, 2.5, 0.0f, 0, 0.12f, 360, 0.7, 0, 0.1);
+    pid_param_init(&yaw_pid, PID_Position, 2.5, 0.0f, 0, 0.12f, 360, 1.0, 0, 0.1);
     pid_param_init(&vision_yaw_pid, PID_Position, 2.5, 0.0f, 0, 0.12f, 360, 0.82f, 0, 0.055f);
     pid_param_init(&omega_pid, PID_Incremental, 1.5, 0.0f, 0, 0.065f, 360, 0.3, 0.0008,0.02);
     pid_param_init(&vision_pid, PID_Incremental, 1.5, 0.0f, 0, 0.065f, 360, 0.60f, 0.0008f, 0);

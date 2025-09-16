@@ -80,6 +80,7 @@ void Air_Joy_Task(void *pvParameters)
 
                     ctrl.twist.pitch.column = (air_joy.RIGHT_Y - 1500)/500.0 * 2;
                     speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
+					Plan_Global_Accel(1,8,&ctrl.twist.linear.x,&ctrl.twist.linear.y,1);
 
                     if(_tool_Abs(air_joy.SWA - 1000) < 50) //SWA UP
                         ctrl.chassis_ctrl = CHASSIS_COM_MODE;   //普通移动
