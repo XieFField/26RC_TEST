@@ -84,13 +84,19 @@ void plan_manhattan(float *target_x_ptr, float *target_y_ptr, float current_x, f
     {
         case MANHATTAN_IDLE:
             // 决策中心：决定下一步走X还是Y，并锁存正交轴坐标
-            if (!is_x_path_done && fabs(final_target_x - current_x) >= AXIS_TOLERANCE) {
-                manhattan_state = MANHATTAN_MOVING_X;
-                latched_y = current_y; // 【关键】锁存当前的Y坐标
-            } else if (!is_y_path_done && fabs(final_target_y - current_y) >= AXIS_TOLERANCE) {
-                manhattan_state = MANHATTAN_MOVING_Y;
-                latched_x = current_x; // 【关键】锁存当前的X坐标
-            } else {
+ 
+			if (!is_y_path_done && fabs(final_target_y - current_y) >= AXIS_TOLERANCE) 
+			{
+				manhattan_state = MANHATTAN_MOVING_Y;
+				latched_x = current_x; // 【关键】锁存当前的X坐标
+			} 
+			else if (!is_x_path_done && fabs(final_target_x - current_x) >= AXIS_TOLERANCE) 
+			{
+				manhattan_state = MANHATTAN_MOVING_X;
+				latched_y = current_y; // 【关键】锁存当前的Y坐标
+			}
+			else 
+			{
                 manhattan_state = MANHATTAN_DONE;
             }
             break;
@@ -121,6 +127,7 @@ void plan_manhattan(float *target_x_ptr, float *target_y_ptr, float current_x, f
             // 任务完成，恢复最终目标
             *target_x_ptr = final_target_x;
             *target_y_ptr = final_target_y;
+		    manhattan_state = MANHATTAN_IDLE;
             break;
     }
 }
@@ -171,8 +178,8 @@ void Plan_Global_Accel(float MAX_ACCEL, float MAX_DECLE, float *global_vx, float
 
     if(!flag)
     {
-        current_vx = 0.0f;
-        current_vy = 0.0f;
+//        current_vx = 0.0f;
+//        current_vy = 0.0f;
     }
     else
     {
@@ -199,8 +206,8 @@ void Plan_Global_Accel(float MAX_ACCEL, float MAX_DECLE, float *global_vx, float
     }
 
     // 输出最终平滑后的速度
-    *global_vx = current_vx;
-    *global_vy = current_vy;
+//    *global_vx = current_vx;
+//    *global_vy = current_vy;
 }
 
 // 状态枚举可以简化，不再需要专门的曼哈顿状态
@@ -233,7 +240,7 @@ void plan_global_speed(float target_x, float target_y, float current_x, float cu
     static float last_target_x = -1e9f;
     static float last_target_y = -1e9f;
     static float initial_distance_to_goal = 0.0f;
-    static int Accel_Flag = 1;
+    static int Accel_Flag = 0;
     static int Update_Flag = 1;
 
     // --- 控制参数 ---
@@ -333,11 +340,11 @@ void plan_global_speed(float target_x, float target_y, float current_x, float cu
         }
         *global_vx = desired_vx;
         *global_vy = desired_vy;
-		Plan_Global_Accel(MAX_ACCEL, MAX_DECLE, global_vx, global_vy, Accel_Flag);
+		Plan_Global_Accel(MAX_ACCEL, MAX_DECLE, global_vx, global_vy, 0);
     }
 
     // --- 功能 4: 最终输出处理 ---
-   
-    Camera_Calibration(Update_Flag);
+//   
+//    Camera_Calibration(Update_Flag);
     Accel_Flag = 1;
 }

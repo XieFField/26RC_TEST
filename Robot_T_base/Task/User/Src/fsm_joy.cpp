@@ -21,7 +21,7 @@
 #include "LED.h"
 #include "speed_action.h"
 #include "ViewCommunication.h"
-
+int cnt1,cnt2;
 #define LASER_CALIBRA_YAW   0.0f   //激光重定位时候车锁定的yaw轴数值
 int test = 0;
 void Air_Joy_Task(void *pvParameters)
@@ -74,23 +74,28 @@ void Air_Joy_Task(void *pvParameters)
                 if(_tool_Abs(air_joy.SWB - 1500) < 50)
                 {
                     ctrl.robot_crtl = BALL_MODE;  
-                    ctrl.twist.linear.y = -(air_joy.LEFT_Y - 1500)/500.0 * 3.7;
-                    ctrl.twist.linear.x = -(air_joy.LEFT_X - 1500)/500.0 * 3.7;
-                    ctrl.twist.angular.z = (air_joy.RIGHT_X - 1500)/500.0 * 2.5;
+                    
+					
 
-                    ctrl.twist.pitch.column = (air_joy.RIGHT_Y - 1500)/500.0 * 2;
-                    speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
-					Plan_Global_Accel(1,8,&ctrl.twist.linear.x,&ctrl.twist.linear.y,1);
+                    if(_tool_Abs(air_joy.SWC - 1000) < 50) //SWA UP
+					{
+						ctrl.twist.linear.y = -(air_joy.LEFT_Y - 1500)/500.0 * 3.7;
+						ctrl.twist.linear.x = -(air_joy.LEFT_X - 1500)/500.0 * 3.7;
+						ctrl.twist.angular.z = (air_joy.RIGHT_X - 1500)/500.0 * 2.5;
 
-                    if(_tool_Abs(air_joy.SWA - 1000) < 50) //SWA UP
+						
+						speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
                         ctrl.chassis_ctrl = CHASSIS_COM_MODE;   //普通移动
+					}
+					else if(_tool_Abs(air_joy.SWC - 1500) < 50)
+							ctrl.chassis_ctrl = CHASSIS_CAMERA_CALIBRA;
 
-                    else if(_tool_Abs(air_joy.SWA - 2000) < 50) //SWA DOWN
+                     if(_tool_Abs(air_joy.SWA - 2000) < 50) //SWA DOWN
                     { 
                        
 
                         //ChassisYaw_Control(0.45/M_PI*180, Pos_Now.yaw*180/M_PI, &ctrl.twist.linear.z);//锁角
-                        ctrl.chassis_ctrl = CHASSIS_CAMERA_CALIBRA; //相机标定模式
+                        
                         /**
                          * @brief 相机标定
                          *        切换到SWA DOWN的时候
@@ -105,23 +110,31 @@ void Air_Joy_Task(void *pvParameters)
                             else if(_tool_Abs(air_joy.SWD - 2000)<50)
                                 SWD_D_state = 1; //DOWN
                             change_key = true;
-                            test = 3;
+                           // test = 3;
                         }
+						//Camera_Calibration(1); //开始标定
                         if(change_key)
                         {
                             if(SWD_D_state == 0 && _tool_Abs(air_joy.SWD - 2000) <50) //UP -> DOWN
                             {
                                 SWD_D_state = 1;
                                 test = 1;
-                                for(int i =0; i < 100; i++) Camera_Calibration(1); //开始标定
+                                for(int i =0; i < 5000; i++) 
+								{
+									Camera_Calibration(1); //开始标定
+									cnt1++;
+								}
                                    
                                 change_key = false;
                             }
                             else if(SWD_D_state == 1 && _tool_Abs(air_joy.SWD - 1000)<50) //DOWN -> UP
                             {
                                 SWD_D_state = 0;
-                                for(int i =0; i < 100; i++)Camera_Calibration(0); //结束标定
-                                    
+                                for(int i =0; i < 5000; i++)
+								{	
+									Camera_Calibration(0); //结束标定
+									cnt2++;
+								}
                                 test = 2;
                                 change_key = false;
                             }

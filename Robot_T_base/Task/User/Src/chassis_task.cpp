@@ -95,6 +95,7 @@ void Chassis_Task(void *pvParameters)
            if(ctrl.chassis_ctrl == CHASSIS_COM_MODE)
            {
                //普通控制模式
+			   //Plan_Global_Accel(1,8,&ctrl.twist.linear.x,&ctrl.twist.linear.y,0);
                chassis.Control(ctrl.twist);
            }
            else if(ctrl.chassis_ctrl == CHASSIS_LOW_MODE) //低速模式
@@ -106,7 +107,8 @@ void Chassis_Task(void *pvParameters)
                 ctrl.twist.linear.x = ctrl.twist.linear.x * 0.7;
                 ctrl.twist.linear.y = ctrl.twist.linear.y * 0.7;
             #endif
-                ctrl.twist.angular.z = ctrl.twist.angular.z ;
+                //ctrl.twist.angular.z = ctrl.twist.angular.z ;
+				//Plan_Global_Accel(1,8,&ctrl.twist.linear.x,&ctrl.twist.linear.y,1);
                 chassis.Control(ctrl.twist);
            }
            else if(ctrl.chassis_ctrl == CHASSIS_OFF)
@@ -118,7 +120,7 @@ void Chassis_Task(void *pvParameters)
            else if(ctrl.chassis_ctrl == CHASSIS_CAMERA_CALIBRA)
            {
                //相机标定模式
-               ChassisYaw_Control(0.45/M_PI*180, Robot_PosData.yaw*180/M_PI, &ctrl.twist.linear.z);//锁角
+               //ChassisYaw_Control(0.45/M_PI*180, Robot_PosData.yaw*180/M_PI, &ctrl.twist.angular.z);//锁角
                plan_global_speed(-0.88f, 0.98f, Robot_PosData.y, Robot_PosData.x, &ctrl.twist.linear.x , &ctrl.twist.linear.y);
                 speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
                 ctrl.twist.linear.y=-ctrl.twist.linear.y;
@@ -175,7 +177,7 @@ void PidParamInit(void)
     chassis.Pid_Mode_Init(2, 0.1f, 0.0f, false, true);
 
 //    //用于控制目标角度的角速度pid
-    pid_param_init(&yaw_pid, PID_Position, 2.5, 0.0f, 0, 0.12f, 360, 1.0, 0, 0.1);
+    pid_param_init(&yaw_pid, PID_Position, 0.5, 0.0f, 0, 0.12f, 360, 1.0, 0, 0.1);
     pid_param_init(&vision_yaw_pid, PID_Position, 2.5, 0.0f, 0, 0.12f, 360, 0.82f, 0, 0.055f);
     pid_param_init(&omega_pid, PID_Incremental, 1.5, 0.0f, 0, 0.065f, 360, 0.3, 0.0008,0.02);
     pid_param_init(&vision_pid, PID_Incremental, 1.5, 0.0f, 0, 0.065f, 360, 0.60f, 0.0008f, 0);

@@ -146,16 +146,17 @@ void calc_error(void)
 /**
  * @brief ÓÃÓÚËø½Ç
  */
+float test_W;
 void ChassisYaw_Control(float target_yaw,float current_yaw,float *w)
 {
 	
 //    W = 1*pid_calc(&yaw_pid, target_yaw, RealPosData.world_yaw);
-     W = pid_calc(&yaw_pid, target_yaw,current_yaw);
+     test_W = pid_calc(&yaw_pid, target_yaw,current_yaw);
     if(_tool_Abs(current_yaw-target_yaw)>=180)
-		    W = -W*0.05;
+		    test_W = -test_W*0.05;
 
     error=_tool_Abs(current_yaw-target_yaw); 
-    *w+=W;
+    *w+=test_W;
 }
 
 void ChassisYawVision_Control(float *w)
