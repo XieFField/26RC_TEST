@@ -85,6 +85,7 @@ void Air_Joy_Task(void *pvParameters)
 
 						
 						speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
+						Plan_Global_Accel(1, &ctrl.twist.linear.x, &ctrl.twist.linear.y, 1);
                         ctrl.chassis_ctrl = CHASSIS_COM_MODE;   //普通移动
 					}
 					else if(_tool_Abs(air_joy.SWC - 1500) < 50)
