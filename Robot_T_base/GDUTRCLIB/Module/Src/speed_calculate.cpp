@@ -7,10 +7,14 @@
 #include "speed_calculate.h"
 #include "ViewCommunication.h"
 #include "drive_tim.h"
-void speed_world_calculate(float *vx,float *vy){
+
+float robot_yaw;
+
+void speed_world_calculate(float *vx,float *vy,float yaw)
+{
 float COS,SIN;
-	 COS = cos (RealPosData.world_yaw * PI /180);
-	 SIN = sin (RealPosData.world_yaw * PI /180);
+	 COS = cos (yaw * PI /180);
+	 SIN = sin (yaw * PI /180);
 
  // ----------- 世界坐标系速度转换为机器人坐标系速度 -----------
     float temp_x = *vx;

@@ -83,9 +83,9 @@ void Air_Joy_Task(void *pvParameters)
 						ctrl.twist.linear.x = -(air_joy.LEFT_X - 1500)/500.0 * 3.7;
 						ctrl.twist.angular.z = (air_joy.RIGHT_X - 1500)/500.0 * 2.5;
 
-						
-						speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y);
 						Plan_Global_Accel(1, &ctrl.twist.linear.x, &ctrl.twist.linear.y, 1);
+						speed_world_calculate(&ctrl.twist.linear.x,&ctrl.twist.linear.y,robot_yaw);
+						
                         ctrl.chassis_ctrl = CHASSIS_COM_MODE;   //普通移动
 					}
 					else if(_tool_Abs(air_joy.SWC - 1500) < 50)

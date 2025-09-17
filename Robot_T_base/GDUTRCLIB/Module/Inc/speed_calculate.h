@@ -8,7 +8,8 @@
 #include <math.h>       // 包含数学函数库
 #define M_PI 3.14159265358979323846f
 #define ROBOT_DIAMETER 0.6f  // 定义机器人直径，单位：米
-void speed_world_calculate(float *vx,float *vy);
+extern float robot_yaw;
+void speed_world_calculate(float *vx,float *vy,float yaw);
 void speed_clock_basket_calculate(float *w);
 void Plan_Global_Accel(float MAX_ACCEL, float *global_vx, float *global_vy, int flag);
 void plan_global_speed(float target_x, float target_y, float current_x, float current_y, float* global_vx, float* global_vy);
